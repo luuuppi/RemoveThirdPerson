@@ -1,12 +1,14 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "dev.luuuppi.remove_third_person.mixin",
+  "package": "dev.luuuppi.remove_third_person.mixins",
   "compatibilityLevel": "JAVA_8",
   "refmap": "remove_third_person.refmap.json",
   "mixins": [
   ],
   "client": [
+    "CameraMixin",
+    "OptionsMixin"
   ],
   "injectors": {
     "defaultRequire": 1
