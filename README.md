@@ -1,0 +1,1 @@
+# A simple mod that removes the third-person view (F5) from Minecraft.
