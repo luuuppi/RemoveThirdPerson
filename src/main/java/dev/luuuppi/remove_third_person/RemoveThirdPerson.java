@@ -1,6 +1,6 @@
 package dev.luuuppi.remove_third_person;
 
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.fml.common.Mod;
 
 @Mod(RemoveThirdPerson.MOD_ID)
 public class RemoveThirdPerson {
