@@ -1,129 +1,93 @@
-buildscript {
-  repositories {
-    maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
-    mavenCentral()
-  }
-  dependencies {
-    classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
-  }
-}
-
 plugins {
-  id 'eclipse'
+  id 'java-library'
+  id 'maven-publish'
   id 'idea'
-  id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
-  id 'org.parchmentmc.librarian.forgegradle' version '1.+'
+  id 'net.neoforged.gradle.userdev' version '7.0.192'
 }
 
-apply plugin: 'org.spongepowered.mixin'
+tasks.named('wrapper', Wrapper).configure {
+  distributionType = Wrapper.DistributionType.BIN
+}
 
-group = mod_group_id
 version = mod_version
+group = mod_group_id
+
+repositories {
+}
 
 base {
   archivesName = mod_id
 }
 
-java {
-  toolchain.languageVersion = JavaLanguageVersion.of(21)
-}
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
-minecraft {
-  mappings channel: mapping_channel, version: mapping_version
+runs {
+  configureEach {
+    systemProperty 'forge.logging.markers', 'REGISTRIES'
 
-  reobf = false
+    systemProperty 'forge.logging.console.level', 'debug'
 
-  copyIdeResources = true
-
-  runs {
-    configureEach {
-      workingDirectory project.file('run')
-
-      property 'forge.logging.markers', 'REGISTRIES'
-
-
-      property 'forge.logging.console.level', 'debug'
-
-      mods {
-        "${mod_id}" {
-          source sourceSets.main
-        }
-      }
-    }
-
-    client {
-      property 'forge.enabledGameTestNamespaces', mod_id
-    }
-
-    server {
-      property 'forge.enabledGameTestNamespaces', mod_id
-      args '--nogui'
-    }
-
-    gameTestServer {
-      property 'forge.enabledGameTestNamespaces', mod_id
-    }
-
-    data {
-      workingDirectory project.file('run-data')
-
-      args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
-    }
+    modSource project.sourceSets.main
   }
-}
 
-mixin {
-  add sourceSets.main, "${mod_id}.refmap.json"
+  client {
+    systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+  }
 
-  config "${mod_id}.mixins.json"
+  server {
+    systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+    argument '--nogui'
+  }
+
+  gameTestServer {
+    systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+  }
+
+  data {
+    arguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+  }
 }
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
-repositories {
+configurations {
+  runtimeClasspath.extendsFrom localRuntime
 }
 
 dependencies {
-  minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-
-  annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
-
+  implementation "net.neoforged:neoforge:${neo_version}"
 }
 
-tasks.named('processResources', ProcessResources).configure {
+tasks.withType(ProcessResources).configureEach {
   var replaceProperties = [
     minecraft_version      : minecraft_version,
     minecraft_version_range: minecraft_version_range,
-    forge_version          : forge_version,
-    forge_version_range    : forge_version_range,
+    neo_version            : neo_version,
     loader_version_range   : loader_version_range,
     mod_id                 : mod_id,
     mod_name               : mod_name,
     mod_license            : mod_license,
     mod_version            : mod_version,
     mod_authors            : mod_authors,
-    mod_description        : mod_description,
+    mod_description        : mod_description
   ]
-
   inputs.properties replaceProperties
 
-  filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
-    expand replaceProperties + [project: project]
+  filesMatching(['META-INF/neoforge.mods.toml']) {
+    expand replaceProperties
   }
 }
 
-tasks.named('jar', Jar).configure {
-  manifest {
-    attributes([
-      "Specification-Title"     : mod_id,
-      "Specification-Vendor"    : mod_authors,
-      "Specification-Version"   : "1", // We are version 1 of ourselves
-      "Implementation-Title"    : project.name,
-      "Implementation-Version"  : project.jar.archiveVersion,
-      "Implementation-Vendor"   : mod_authors,
-      "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-      "MixinConfigs"            : "${mod_id}.mixins.json"
-    ])
+publishing {
+  publications {
+    register('mavenJava', MavenPublication) {
+      from components.java
+    }
+  }
+  repositories {
+    maven {
+      url "file://${project.projectDir}/repo"
+    }
   }
 }
 
@@ -131,8 +95,9 @@ tasks.withType(JavaCompile).configureEach {
   options.encoding = 'UTF-8'
 }
 
-sourceSets.each {
-  def dir = layout.buildDirectory.dir("sourcesSets/$it.name")
-  it.output.resourcesDir = dir
-  it.java.destinationDirectory = dir
+idea {
+  module {
+    downloadSources = true
+    downloadJavadoc = true
+  }
 }
